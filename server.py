@@ -7,11 +7,19 @@ from auth import create_token, USERS, require_admin
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
-
+from fastapi.middleware.cors import CORSMiddleware
 
 
 
 api = FastAPI()
+
+api.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 conn = psycopg2.connect(
     dbname="compliance_db",
@@ -38,6 +46,7 @@ logs_store: List[dict] = []
 
 @api.post("/ingest-log")
 def ingest_log(payload: LogIngestPayload):
+
     log_entry = {
         "service": payload.service,
         "level": payload.level,
@@ -47,6 +56,8 @@ def ingest_log(payload: LogIngestPayload):
     }
 
     cursor = conn.cursor()
+
+    # Store raw log
     cursor.execute(
         """
         INSERT INTO raw_logs (service, level, message, user_id, ingested_at)
@@ -60,6 +71,22 @@ def ingest_log(payload: LogIngestPayload):
             log_entry["ingested_at"]
         )
     )
+
+    # RULE ENGINE (detect violations)
+    if log_entry["level"] == "ERROR":
+        cursor.execute(
+            """
+            INSERT INTO violations (rule_name, user_id, details, detected_at)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (
+                "Error Log Detected",
+                log_entry["user_id"],
+                log_entry["message"],
+                datetime.utcnow()
+            )
+        )
+
     cursor.close()
 
     return {
@@ -102,4 +129,12 @@ def get_violations(admin=Depends(require_admin)):
     rows = cursor.fetchall()
     cursor.close()
 
-    return rows
+    return [
+    {
+        "rule_name": row[0],
+        "user_id": row[1],
+        "details": row[2],
+        "detected_at": row[3]
+    }
+    for row in rows
+]
