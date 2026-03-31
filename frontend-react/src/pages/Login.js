@@ -19,8 +19,8 @@ function Login() {
         },
         body: new URLSearchParams({
           grant_type: "password",
-          username,
-          password,
+          username: username,
+          password: password,
         }),
       });
 

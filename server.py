@@ -95,9 +95,29 @@ def ingest_log(payload: LogIngestPayload):
 
 @api.get("/logs")
 def get_logs():
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT service, level, message, user_id, ingested_at
+        FROM raw_logs
+        ORDER BY ingested_at DESC
+    """)
+
+    rows = cursor.fetchall()
+    cursor.close()
+
+    logs = []
+    for row in rows:
+        logs.append({
+            "service": row[0],
+            "level": row[1],
+            "message": row[2],
+            "user_id": row[3],
+            "time": str(row[4])
+        })
+
     return {
-        "count": len(logs_store),
-        "logs": logs_store
+        "logs": logs
     }
 
 @api.post("/login")
