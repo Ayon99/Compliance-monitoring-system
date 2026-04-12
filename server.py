@@ -8,7 +8,8 @@ from fastapi import Depends
 from fastapi import HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
-
+from ml_features import extract_features
+from ml_model import train_model, predict_anomalies
 
 
 api = FastAPI()
@@ -31,6 +32,65 @@ conn = psycopg2.connect(
 
 conn.autocommit = True
 
+def get_all_logs():
+    cursor = conn.cursor()
+    cursor.execute("SELECT service, level, message, user_id FROM raw_logs")
+    rows = cursor.fetchall()
+    cursor.close()
+
+    logs = []
+    for r in rows:
+        logs.append({
+            "service": r[0],
+            "level": r[1],
+            "message": r[2],
+            "user_id": r[3],
+        })
+
+    return logs
+
+def run_ml_detection():
+    logs = get_all_logs()
+
+    if len(logs) < 5:
+        return
+
+    features = extract_features(logs)
+    train_model(features)
+    results = predict_anomalies(features)
+
+    users = [log["user_id"] for log in logs]
+
+    cursor = conn.cursor()
+
+    for i, res in enumerate(results):
+        if res["anomaly"] and res["score"] < -0.1:
+
+            cursor.execute("""
+                SELECT 1 FROM violations
+                WHERE user_id = %s
+                AND rule_name = 'ml_anomaly'
+                ORDER BY detected_at DESC
+                LIMIT 1
+            """, (users[i],))
+
+            exists = cursor.fetchone()
+
+            if not exists:
+                cursor.execute(
+                    """
+                    INSERT INTO violations (rule_name, user_id, details, detected_at)
+                    VALUES (%s, %s, %s, NOW())
+                    """,
+                    (
+                        "ml_anomaly",
+                        users[i],
+                        f"Anomalous behavior detected. Score: {res['score']}"
+                    )
+                )
+
+    cursor.close()
+
 @api.get("/health")
 def health():
     return {"status": "ok"}
@@ -42,7 +102,7 @@ class LogIngestPayload(BaseModel):
     message: str
     user_id: str
 
-logs_store: List[dict] = []
+
 
 @api.post("/ingest-log")
 def ingest_log(payload: LogIngestPayload):
@@ -88,6 +148,8 @@ def ingest_log(payload: LogIngestPayload):
         )
 
     cursor.close()
+
+    run_ml_detection()
 
     return {
         "status": "accepted"
@@ -151,10 +213,10 @@ def get_violations(admin=Depends(require_admin)):
 
     return [
     {
-        "rule_name": row[0],
-        "user_id": row[1],
+        "rule": row[0],
+        "user": row[1],
         "details": row[2],
-        "detected_at": row[3]
+        "time": str(row[3])
     }
     for row in rows
 ]
