@@ -1,66 +1,103 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 function Login() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate();
-  const { login } = useAuth();   // ✅ Hook at top level
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleLogin = async () => {
+    const formData = new URLSearchParams();
+    formData.append("username", username);
+    formData.append("password", password);
 
-    try {
-      const response = await fetch("http://127.0.0.1:8000/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          grant_type: "password",
-          username: username,
-          password: password,
-        }),
-      });
+    const res = await fetch("http://127.0.0.1:8000/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: formData
+    });
 
-      if (!response.ok) {
-        alert("Invalid credentials");
-        return;
-      }
-
-      const data = await response.json();
-
-      login(data.access_token);  // ✅ Use context function
+    if (res.ok) {
+      const data = await res.json();
+      login(data.access_token);
       navigate("/dashboard");
-
-    } catch (err) {
-      console.error(err);
+    } else {
+      alert("Invalid credentials");
     }
   };
 
   return (
-    <div style={{ padding: "50px" }}>
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
+    <div style={container}>
+
+      <div style={card}>
+        <h2 style={{ marginBottom: "20px" }}>Login</h2>
+
         <input
-          type="text"
+          style={input}
           placeholder="Username"
           value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          onChange={e => setUsername(e.target.value)}
         />
-        <br /><br />
+
         <input
+          style={input}
           type="password"
           placeholder="Password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={e => setPassword(e.target.value)}
         />
-        <br /><br />
-        <button type="submit">Login</button>
-      </form>
+
+        <button style={button} onClick={handleLogin}>
+          Login
+        </button>
+      </div>
+
     </div>
   );
 }
 
 export default Login;
+
+/* ================= STYLES ================= */
+
+const container = {
+  height: "100vh",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  background: "#0f172a"
+};
+
+const card = {
+  background: "#1e293b",
+  padding: "40px",
+  borderRadius: "12px",
+  width: "300px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "15px",
+  boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+  color: "white"
+};
+
+const input = {
+  padding: "10px",
+  borderRadius: "6px",
+  border: "none",
+  outline: "none"
+};
+
+const button = {
+  padding: "10px",
+  borderRadius: "6px",
+  border: "none",
+  background: "#38bdf8",
+  color: "white",
+  fontWeight: "bold",
+  cursor: "pointer"
+};

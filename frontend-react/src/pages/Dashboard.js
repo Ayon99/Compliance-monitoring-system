@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid
+} from "recharts";
 
 function Dashboard() {
-
   const { token, logout, user } = useAuth();
   const navigate = useNavigate();
 
@@ -17,9 +23,7 @@ function Dashboard() {
   };
 
   useEffect(() => {
-
     const fetchData = () => {
-
       // violations
       fetch("http://127.0.0.1:8000/violations", {
         headers: {
@@ -52,53 +56,53 @@ function Dashboard() {
 
   }, [token]);
 
-  // Stats
+  // stats
   const errorCount = logs.filter(log => log.level === "ERROR").length;
+  const mlCount = violations.filter(v => v.rule === "ml_anomaly").length;
 
-  // Chart data
+  // chart data
   const violationStats = {};
 
   violations.forEach(v => {
-    const rule = v[0];
-    violationStats[rule] = (violationStats[rule] || 0) + 1;
+    if (!v.rule) return;
+
+    const key =
+      v.rule === "ml_anomaly" ? "ML Anomaly" : "Rule Violation";
+
+    violationStats[key] = (violationStats[key] || 0) + 1;
   });
 
-  const chartData = Object.entries(violationStats).map(([key, value]) => ({
-    name: String(key),   // force string
-    count: Number(value) // force number
+  const chartData = Object.keys(violationStats).map(key => ({
+    name: key,
+    count: violationStats[key]
   }));
+
   return (
-    <div style={{ maxWidth: "900px", margin: "40px auto", fontFamily: "Arial" }}>
+    <div style={container}>
 
       {/* NAVBAR */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "30px" }}>
-        
-        <div>
-          <strong>Compliance Monitoring</strong>
+      <div style={navbar}>
+        <h2>Compliance Monitor</h2>
 
-          <span 
-            style={{ marginLeft: "20px", cursor: "pointer" }} 
-            onClick={() => navigate("/dashboard")}
-          >
+        <div>
+          <span style={navItem} onClick={() => navigate("/dashboard")}>
             Dashboard
           </span>
 
-          <span 
-            style={{ marginLeft: "15px", cursor: "pointer" }} 
-            onClick={() => navigate("/logs")}
-          >
+          <span style={navItem} onClick={() => navigate("/logs")}>
             Logs
           </span>
+
+          <button style={logoutBtn} onClick={handleLogout}>
+            Logout
+          </button>
         </div>
-
-        <button onClick={handleLogout}>Logout</button>
-
       </div>
 
-      <h1>Dashboard</h1>
+      <h1 style={{ marginBottom: "20px" }}>Dashboard</h1>
 
       {/* STATS */}
-      <div style={{ display: "flex", gap: "20px", marginBottom: "30px" }}>
+      <div style={cardContainer}>
 
         <div style={card}>
           <h3>Total Logs</h3>
@@ -115,88 +119,137 @@ function Dashboard() {
           <p style={{ ...cardNumber, color: "red" }}>{errorCount}</p>
         </div>
 
+        <div style={card}>
+          <h3>ML Anomalies</h3>
+          <p style={{ ...cardNumber, color: "orange" }}>{mlCount}</p>
+        </div>
+
       </div>
 
       {/* CHART */}
-      <h2>Violations Overview</h2>
+      <div style={chartContainer}>
+        <h3>Violations Overview</h3>
 
-      {chartData.length === 0 ? (
-        <p style={{ color: "#777" }}>No data for chart</p>
-      ) : (
-        <div style={{ width: "100%", height: 300 }}>
-          <BarChart width={600} height={300} data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="count" fill="#8884d8" />
-          </BarChart>
-        </div>
-      )}
+        <BarChart width={600} height={300} data={chartData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Bar dataKey="count" />
+        </BarChart>
+      </div>
 
-      {/* USER INFO */}
+      {/* USER */}
       <div style={{ marginBottom: "20px" }}>
         Logged in as: <strong>{user?.role}</strong>
       </div>
 
-      {/* VIOLATIONS TABLE */}
+      {/* TABLE */}
       <h2>Detected Violations</h2>
 
-      {violations.length === 0 ? (
-        <p style={{ color: "#777" }}>No violations detected 🎉</p>
-      ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th style={cellHeader}>Rule</th>
-              <th style={cellHeader}>User</th>
-              <th style={cellHeader}>Details</th>
-              <th style={cellHeader}>Time</th>
-            </tr>
-          </thead>
+      <table style={table}>
+        <thead>
+          <tr>
+            <th style={cellHeader}>Rule</th>
+            <th style={cellHeader}>User</th>
+            <th style={cellHeader}>Details</th>
+            <th style={cellHeader}>Time</th>
+          </tr>
+        </thead>
 
-          <tbody>
-            {violations.map((v, index) => (
-              <tr key={index}>
-                <td style={{ ...cell, color: "red", fontWeight: "bold" }}>{v[0]}</td>
-                <td style={cell}>{v[1]}</td>
-                <td style={cell}>{v[2]}</td>
-                <td style={cell}>{v[3]}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+        <tbody>
+          {violations.map((v, index) => (
+            <tr key={index}>
+              <td
+                style={{
+                  ...cell,
+                  color: v.rule === "ml_anomaly" ? "orange" : "red",
+                  fontWeight: "bold"
+                }}
+              >
+                {v.rule}
+              </td>
+              <td style={cell}>{v.user}</td>
+              <td style={cell}>{v.details}</td>
+              <td style={cell}>{v.time}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
     </div>
   );
 }
 
-/* STYLES */
+export default Dashboard;
 
-const cellHeader = {
-  borderBottom: "2px solid #ccc",
-  textAlign: "left",
-  padding: "10px"
+/* ================= STYLES ================= */
+
+const container = {
+  minHeight: "100vh",
+  background: "#0f172a",
+  color: "white",
+  padding: "30px",
+  fontFamily: "Arial"
 };
 
-const cell = {
-  borderBottom: "1px solid #eee",
-  padding: "10px"
+const navbar = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "30px"
+};
+
+const navItem = {
+  marginRight: "20px",
+  cursor: "pointer"
+};
+
+const logoutBtn = {
+  padding: "6px 12px",
+  cursor: "pointer"
+};
+
+const cardContainer = {
+  display: "flex",
+  gap: "20px",
+  marginBottom: "30px"
 };
 
 const card = {
   flex: 1,
-  border: "1px solid #ddd",
-  borderRadius: "8px",
-  padding: "15px",
-  background: "#f9f9f9"
+  background: "#1e293b",
+  borderRadius: "12px",
+  padding: "20px",
+  boxShadow: "0 4px 10px rgba(0,0,0,0.3)"
 };
 
 const cardNumber = {
-  fontSize: "22px",
+  fontSize: "28px",
   fontWeight: "bold",
-  marginTop: "10px"
+  color: "#38bdf8"
 };
 
-export default Dashboard;
+const chartContainer = {
+  background: "#1e293b",
+  padding: "20px",
+  borderRadius: "12px",
+  marginBottom: "30px"
+};
+
+const table = {
+  width: "100%",
+  borderCollapse: "collapse"
+};
+
+const cellHeader = {
+  borderBottom: "2px solid #334155",
+  padding: "12px",
+  color: "#94a3b8",
+  textAlign: "left"
+};
+
+const cell = {
+  borderBottom: "1px solid #1e293b",
+  padding: "12px"
+};
