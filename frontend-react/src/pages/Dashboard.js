@@ -92,6 +92,10 @@ function Dashboard() {
           <span style={navItem} onClick={() => navigate("/logs")}>
             Logs
           </span>
+          
+          <span style={navItem} onClick={() => navigate("/report")}>
+            Report
+          </span>
 
           <button style={logoutBtn} onClick={handleLogout}>
             Logout
