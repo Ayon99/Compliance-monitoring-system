@@ -278,19 +278,23 @@ backend/
 
 ## Dashboard
 
-(Add screenshot here)
+<img width="1858" height="933" alt="Screenshot 2026-05-01 033254" src="https://github.com/user-attachments/assets/3d9d2a96-a790-4075-a8e2-d6daa3f83b76" />
+
 
 ## Logs Page
 
-(Add screenshot here)
+<img width="1854" height="893" alt="Screenshot 2026-05-01 033314" src="https://github.com/user-attachments/assets/8b113e47-739f-4f32-82c8-a74d40084d82" />
+
 
 ## Report Page
 
-(Add screenshot here)
+<img width="1848" height="782" alt="Screenshot 2026-05-01 033336" src="https://github.com/user-attachments/assets/45e0d4d3-d371-474e-92a2-ca8f6e856f82" />
+
 
 ## Login Page
 
-(Add screenshot here)
+<img width="1670" height="890" alt="Screenshot 2026-05-01 033225" src="https://github.com/user-attachments/assets/45ee1e97-7682-4a9f-8aaa-d03fa532ed6f" />
+
 
 ---
 
