@@ -303,8 +303,8 @@ backend/
 ## 1. Clone Repository
 
 ```bash
-git clone <your-repo-url>
-cd <repo>
+git clone https://github.com/Ayon99/Compliance-monitoring-system
+cd Compliance-monitoring-system
 ```
 
 ---
